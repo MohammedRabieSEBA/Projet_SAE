@@ -63,6 +63,8 @@ erDiagram
         double lsn_peqkt
     }
 
+```
+
 ### Justification des Cardinalités complexes :
 * **Relation 1..N (`continents` ➔ `destinations`) :** Un continent contient plusieurs pays de destination, mais un pays n'appartient qu'à un seul et unique continent.
 * **Relation 1..1 (`trafic_mensuel_volumes` ➔ `trafic_performances_km`) :** Pour un couple unique (ex: Paris-Madrid en Janvier 2024), il existe exactement une ligne de volume (passagers/fret) et au maximum une ligne de performances associée. La clé primaire est donc composite (`id_liaison`, `anmois`).
