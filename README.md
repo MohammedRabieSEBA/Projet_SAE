@@ -8,10 +8,10 @@ L'application traite un volume massif de plus de **43 000 lignes de données men
 ---
 
 ## 🛠️ Technologies Utilisées
-* **Back-end :** PHP 8.x (Architecture scriptée propre, requêtes préparées avec l'API **PDO**)
-* **Base de données :** MySQL (Modèle relationnel optimisé, gestion des contraintes d'intégrité)
-* **Front-end :** HTML5 / CSS3, Framework **Bootstrap 5.3** (Interface responsive et moderne)
-* **Visualisation :** **Chart.js** (Graphiques dynamiques et interactifs côté client)
+* **Back-end :** PHP 8.x (Architecture scriptée propre, requêtes préparées avec l'API **PDO**, architecture try/catch).
+* **Base de données :** MySQL (Modèle relationnel optimisé, gestion des contraintes d'intégrité).
+* **Front-end :** HTML5 / CSS3 (utilisation avancée de la balise `<datalist>`), Framework **Bootstrap 5.3**.
+* **Visualisation :** **Chart.js** (Graphiques dynamiques et interactifs côté client).
 
 ---
 
