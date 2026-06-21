@@ -1,8 +1,12 @@
 <?php
-
 require_once 'db.php';
 
-// Requête A : Top 10 des pays les plus visités
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$annee_selectionnee = isset($_GET['annee']) ? $_GET['annee'] : '2024';
+
+$stmtYears = $pdo->query("SELECT DISTINCT LEFT(anmois, 4) AS annee FROM periodes ORDER BY annee DESC");
+$listeAnnees = $stmtYears->fetchAll(PDO::FETCH_COLUMN);
+
 $sqlTop10 = "SELECT 
                 d.nom_destination AS pays,
                 d.nom_continent AS continent,
@@ -10,25 +14,48 @@ $sqlTop10 = "SELECT
              FROM trafic_mensuel_volumes v
              JOIN liaisons l ON v.id_liaison = l.id_liaison
              JOIN destinations d ON l.nom_destination = d.nom_destination
-             WHERE d.nom_destination NOT LIKE '\_%'
-             GROUP BY d.nom_destination, d.nom_continent
-             ORDER BY total_passagers DESC
-             LIMIT 10";
-$stmtTop10 = $pdo->query($sqlTop10);
+             WHERE d.nom_destination NOT LIKE '\_%' 
+             AND LEFT(v.anmois, 4) = :annee";
+
+if ($search !== '') {
+    $sqlTop10 .= " AND d.nom_destination LIKE :search";
+}
+
+$sqlTop10 .= " GROUP BY d.nom_destination, d.nom_continent
+               ORDER BY total_passagers DESC
+               LIMIT 10";
+
+$stmtTop10 = $pdo->prepare($sqlTop10);
+$stmtTop10->bindValue(':annee', $annee_selectionnee);
+
+if ($search !== '') {
+    $stmtTop10->bindValue(':search', '%' . $search . '%');
+}
+$stmtTop10->execute();
 $top10Pays = $stmtTop10->fetchAll();
 
-// Requête B : Impact du Covid (2019, 2020, 2024)
 $sqlCovid = "SELECT 
                 LEFT(v.anmois, 4) AS annee,
                 SUM(v.lsn_pax) AS total_passagers
              FROM trafic_mensuel_volumes v
-             WHERE v.anmois LIKE '2019%' OR v.anmois LIKE '2020%' OR v.anmois LIKE '2024%'
-             GROUP BY LEFT(v.anmois, 4)";
-$stmtCovid = $pdo->query($sqlCovid);
+             JOIN liaisons l ON v.id_liaison = l.id_liaison
+             JOIN destinations d ON l.nom_destination = d.nom_destination
+             WHERE (v.anmois LIKE '2019%' OR v.anmois LIKE '2020%' OR v.anmois LIKE '2024%')";
+
+if ($search !== '') {
+    $sqlCovid .= " AND d.nom_destination LIKE :search";
+}
+
+$sqlCovid .= " GROUP BY LEFT(v.anmois, 4)";
+
+$stmtCovid = $pdo->prepare($sqlCovid);
+
+if ($search !== '') {
+    $stmtCovid->bindValue(':search', '%' . $search . '%');
+}
+$stmtCovid->execute();
 $donneesCovid = $stmtCovid->fetchAll();
 
-// --- PRÉPARATION DES DONNÉES POUR LE GRAPHIQUE ---
-// Chart.js a besoin de deux listes : une pour les étiquettes (les années) et une pour les valeurs (les passagers)
 $labelsCovid = [];
 $valeursCovid = [];
 foreach ($donneesCovid as $ligne) {
@@ -56,11 +83,38 @@ foreach ($donneesCovid as $ligne) {
         </div>
     </div>
 
+    <div class="card shadow-sm mb-4">
+        <div class="card-body bg-white">
+            <form method="GET" action="index.php" class="row g-3 align-items-center">
+                <div class="col-md-5">
+                    <label for="search" class="form-label fw-bold">Rechercher une destination :</label>
+                    <input type="text" class="form-control" id="search" name="search" placeholder="Ex: Japon, Canada..." value="<?= htmlspecialchars($search) ?>">
+                </div>
+                
+                <div class="col-md-5">
+                    <label for="annee" class="form-label fw-bold">Année de référence (Top 10) :</label>
+                    <select class="form-select" id="annee" name="annee">
+                        <?php foreach ($listeAnnees as $a): ?>
+                            <option value="<?= htmlspecialchars($a) ?>" <?= ($a == $annee_selectionnee) ? 'selected' : '' ?>>
+                                Année <?= htmlspecialchars($a) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="col-md-2 d-flex align-items-end mt-4">
+                    <button type="submit" class="btn btn-primary w-100">🔍 Filtrer</button>
+                    <a href="index.php" class="btn btn-outline-secondary ms-2">✖</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-md-7">
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-dark text-white">
-                    <h5 class="card-title mb-0">🏆 Top 10 des destinations historiques</h5>
+                    <h5 class="card-title mb-0">🏆 Top 10 des destinations (<?= htmlspecialchars($annee_selectionnee) ?>)</h5>
                 </div>
                 <div class="card-body">
                     <table class="table table-hover table-striped">
@@ -108,14 +162,10 @@ foreach ($donneesCovid as $ligne) {
 </div>
 
 <script>
-
     const ctx = document.getElementById('covidChart').getContext('2d');
-
-    // injection data PHP directement dans le Javascript grâce à json_encode
     const labelsAnnees = <?= json_encode($labelsCovid) ?>;
     const dataPassagers = <?= json_encode($valeursCovid) ?>;
 
-    // graphe
     new Chart(ctx, {
         type: 'bar',
         data: {
@@ -124,9 +174,9 @@ foreach ($donneesCovid as $ligne) {
                 label: 'Nombre de passagers',
                 data: dataPassagers,
                 backgroundColor: [
-                    'rgba(54, 162, 235, 0.6)', // Bleu pour 2019
-                    'rgba(255, 99, 132, 0.8)', // Rouge pour 2020 (Covid)
-                    'rgba(75, 192, 192, 0.6)'  // Vert pour 2024 (Reprise)
+                    'rgba(54, 162, 235, 0.6)',
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(75, 192, 192, 0.6)'
                 ],
                 borderColor: [
                     'rgb(54, 162, 235)',
@@ -139,17 +189,12 @@ foreach ($donneesCovid as $ligne) {
         options: {
             responsive: true,
             plugins: {
-                legend: {
-                    display: false
-                }
+                legend: { display: false }
             },
             scales: {
                 y: {
                     beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Volume de Passagers'
-                    }
+                    title: { display: true, text: 'Volume de Passagers' }
                 }
             }
         }
