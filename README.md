@@ -16,16 +16,16 @@ Le premier défi consistait à transformer des fichiers plats (CSV) en une base 
 
 ```mermaid
 erDiagram
-    %% Relations 1..n
-    continents ||--o{ destinations : "1..n (Un continent regroupe plusieurs pays)"
-    destinations ||--o{ liaisons : "1..n (Un pays reçoit plusieurs liaisons)"
-    faisceaux ||--o{ liaisons : "1..n (Un faisceau caractérise plusieurs liaisons)"
+    %% Relations 1..N
+    continents ||--o{ destinations : "regroupe"
+    destinations ||--o{ liaisons : "reçoit"
+    faisceaux ||--o{ liaisons : "caractérise"
     
-    periodes ||--o{ trafic_mensuel_volumes : "1..n (Un mois concerne plusieurs volumes)"
-    liaisons ||--o{ trafic_mensuel_volumes : "1..n (Une liaison génère plusieurs volumes)"
+    periodes ||--o{ trafic_mensuel_volumes : "concerne"
+    liaisons ||--o{ trafic_mensuel_volumes : "génère"
 
     %% Relations 1..1
-    trafic_mensuel_volumes ||--|| trafic_performances_km : "1..1 (Même liaison + Même mois = 1 seule perf)"
+    trafic_mensuel_volumes ||--|| trafic_performances_km : "associe"
 
     continents {
         string nom_continent PK
@@ -48,20 +48,21 @@ erDiagram
         string code_fsc FK
     }
     trafic_mensuel_volumes {
-        int id_liaison PK_FK
-        int anmois PK_FK
+        int id_liaison PK, FK
+        int anmois PK, FK
         int lsn_pax
         double lsn_frp
         int lsn_drt
         int lsn_peq
     }
     trafic_performances_km {
-        int id_liaison PK_FK
-        int anmois PK_FK
+        int id_liaison PK, FK
+        int anmois PK, FK
         double lsn_pkt
         double lsn_tkt
         double lsn_peqkt
     }
+
 
 ```
 
